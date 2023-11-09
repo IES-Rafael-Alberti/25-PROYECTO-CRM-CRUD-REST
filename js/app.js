@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
     const openRequest = indexedDB.open("MyDatabase", 3);
     const tableBody = document.querySelector("#listado-clientes")
-
     let database;
+
+    //TODO Refactor the database code
 
     openRequest.onerror = (event) => {
       console.error("Database error: " + event.target.errorCode);

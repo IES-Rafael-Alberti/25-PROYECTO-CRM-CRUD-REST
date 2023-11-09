@@ -1,39 +1,40 @@
+import {activarSpinner, customerOBJ, displayAlert, validar} from "./funciones.js";
+import {form, inputName, inputBusiness, inputEmail, inputPhoneNumber, submitButton, spinner} from "./formHandler.js"
 document.addEventListener("DOMContentLoaded", () => {
 
+    // Open or create a database named "MyDatabase" with version 3.
     const openRequest = indexedDB.open("MyDatabase", 3);
+    //TODO Refactor the database code
+
+    // Retrieve the customer's email from local storage.
     const customerEmailString = localStorage.getItem('customerEmail');
-    const inputName = document.querySelector("#nombre")
-    const inputEmail = document.querySelector("#email")
-    const inputPhoneNumber = document.querySelector("#telefono")
-    const inputBusiness = document.querySelector("#empresa")
-    const submitButton = document.querySelector('#formulario button[type="submit"]');
-    const form = document.querySelector("#formulario")
     const customerEmail = JSON.parse(customerEmailString);
     let database;
 
 
-
-
-    const customerOBJ = {
-        email: "",
-        nombre: "",
-        telefono: "",
-        empresa: ""
-    }
     openRequest.onsuccess = (event) => {
-        const database = event.target.result;
-
-        // Now, you can perform your database operations.
+        database = event.target.result;
         const transaction = database.transaction("customers", "readwrite");
         const objectStore = transaction.objectStore("customers");
-        const request = objectStore.get(inputEmail.value.trim());
 
-        request.onsuccess = (event) => {
-            const existingCustomer = event.target.result;
-            setFormInfo(existingCustomer);
+        // Get the customer data using the provided email.
+        const getInformationRequest = objectStore.get(customerEmail);
+        getInformationRequest.onsuccess = (event) => {
+            const item = event.target.result;
+            if (item) {
+                console.log(item.email);
+            } else {
+                console.log("Item not found.");
+            }
+            setFormInfo(item)
         };
-    };
 
+        getInformationRequest.onerror = (event) => {
+            console.error("Error getting item:", event.target.error);
+        };
+    }
+
+    // Define a function to set form information based on existing customer data.
     function setFormInfo(item) {
         inputName.value = item.nombre;
         inputEmail.value = item.email;
@@ -41,166 +42,86 @@ document.addEventListener("DOMContentLoaded", () => {
         inputBusiness.value = item.empresa;
     }
 
-    inputName.addEventListener("blur", validar)
-    inputEmail.addEventListener("blur", validar);
-    inputPhoneNumber.addEventListener("blur", validar);
-    inputBusiness.addEventListener("blur", validar);
+    // Handle the "blur" event for input fields by calling the "validar" function.
+    inputName.addEventListener("blur", (event)=>{
+        validar(event,submitButton)
+    });
+    inputEmail.addEventListener("blur", (event)=>{
+        validar(event,submitButton)
+    });
+    inputPhoneNumber.addEventListener("blur", (event)=>{
+        validar(event,submitButton)
+    });
+    inputBusiness.addEventListener("blur", (event)=>{
+        validar(event,submitButton)
+    });
+
+    // Handle the "click" event for the submit button by calling the "saveToDatabase" function.
     submitButton.addEventListener("click", saveToDatabase);
 
+    // Define a function to update customer data with a different email ID.
     function updateCustomerDiferentId(objectStore, transaction) {
+        // Delete the old data with the previous email.
         const deleteRequest = objectStore.delete(customerOBJ.email);
-        deleteRequest.onsuccess = () => {
-            customerOBJ.email = inputEmail.value.trim();
-            customerOBJ.nombre = inputName.value.trim();
-            customerOBJ.telefono = inputPhoneNumber.value.trim();
-            customerOBJ.empresa = inputBusiness.value.trim();
-            objectStore.put(customerOBJ);
-            transaction.oncomplete = function () {
-                console.log('Data updated successfully');
-                window.location.href = 'index.html'
-            };
-        };
-    }
 
-    function updatadeCustomerSameId(objectStore, transaction) {
+        // Update the customer object with new data.
+        customerOBJ.email = inputEmail.value.trim();
         customerOBJ.nombre = inputName.value.trim();
         customerOBJ.telefono = inputPhoneNumber.value.trim();
         customerOBJ.empresa = inputBusiness.value.trim();
 
+        // Put the updated data in the object store.
         objectStore.put(customerOBJ);
+
+        // When the transaction is complete, redirect to 'index.html'.
         transaction.oncomplete = function () {
             console.log('Data updated successfully');
-            window.location.href = 'index.html'
+            window.location.href = 'index.html';
         };
     }
 
+    // Define a function to update customer data with the same email ID.
+    function updatadeCustomerSameId(objectStore, transaction) {
+        // Update the customer object with new data.
+        customerOBJ.nombre = inputName.value.trim();
+        customerOBJ.telefono = inputPhoneNumber.value.trim();
+        customerOBJ.empresa = inputBusiness.value.trim();
+
+        // Put the updated data in the object store.
+        objectStore.put(customerOBJ);
+
+        // When the transaction is complete, redirect to 'index.html'.
+        transaction.oncomplete = function () {
+            setInterval(function() {
+                activarSpinner(form,spinner)
+            },6000)
+            console.log('Data updated successfully');
+            window.location.href = 'index.html';
+        };
+    }
+
+    // Function to save data to the database.
     function saveToDatabase() {
+        // Start a transaction for the "customers" object store.
         const transaction = database.transaction("customers", "readwrite");
         const objectStore = transaction.objectStore("customers");
+
+        // Check if the email has changed.
         if (customerOBJ.email !== inputEmail.value.trim()) {
+            // If the email has changed, check if it already exists in the database.
             const request = objectStore.get(inputEmail.value.trim());
+
             request.onsuccess = (event) => {
                 const existingCustomer = event.target.result;
                 if (existingCustomer) {
-                    displayAlert("Email already in use. Please choose a different email.", form);
+                    displayAlert("Email already in use. Please choose a different email.", inputEmail.value);
                 } else {
                     updateCustomerDiferentId(objectStore, transaction);
                 }
             };
         } else {
+            // If the email hasn't changed, update the data with the same email.
             updatadeCustomerSameId(objectStore, transaction);
         }
     }
-
-
-
-
-    openRequest.onsuccess = (event) => {
-
-        database = event.target.result;
-        const transaction = database.transaction("customers", "readwrite");
-        const objectStore = transaction.objectStore("customers")
-        const request = objectStore.get(customerEmail);
-        request.onsuccess = (event) => {
-            const item = event.target.result;
-            if (item) {
-                console.log(item.email)
-
-            } else {
-                console.log("Item not found.");
-            }
-        };
-
-        request.onerror = (event) => {
-            console.error("Error getting item:", event.target.error);
-        };
-    }
-
-
-
-
-
-    function validar(e) {
-        if (e.target.value.trim() === "") {
-            displayAlert(`El campo ${e.target.id} es obligatorio`, e.target.parentElement);
-            validateCustomer();
-            return;
-        }
-
-        if ((!validateName(e.target.value.trim()) && (e.target.id === "nombre" || e.target.id === "empresa"))) {
-            displayAlert("El nombre no es valido", e.target.parentElement);
-            customerOBJ[e.target.id] = "";
-            return;
-        }
-
-        if (!validateEmail(e.target.value.trim()) && e.target.id === "email") {
-            displayAlert(`El email no es valido`, e.target.parentElement);
-            customerOBJ[e.target.id] = "";
-            return;
-        }
-
-        if (!validatePhoneNumber(e.target.value.trim()) && e.target.id === "telefono") {
-            displayAlert("El telefono no es correcto", e.target.parentElement);
-            customerOBJ[e.target.id] = "";
-            return;
-        }
-
-        clearAlert(e.target.parentElement);
-        customerOBJ[e.target.id] = e.target.value.trim();
-        validateCustomer();
-    }
-
-
-    // Summit button handler
-
-    function validateCustomer() {
-        const values = Object.values(customerOBJ)
-        console.log(values, "Values")
-        if (values.includes("")){
-            submitButton.classList.add("opacity-50")
-            submitButton.disabled = true
-            return
-        }
-        submitButton.classList.remove("opacity-50")
-        submitButton.disabled = false
-    }
-
-
-
-    // Alert Functions
-
-    function clearAlert(referencia)  {
-        const alerta = referencia.querySelector(".bg-red-600")
-        if (alerta) {
-            alerta.remove()
-        }
-    }
-
-    function displayAlert(mensaje, referencia)  {
-        clearAlert(referencia)
-        const error = document.createElement("P")
-        error.textContent = mensaje
-        error.classList.add("bg-red-600", "text-center", "text-white", "p-2")
-        referencia.appendChild(error)
-
-    }
-
-    // Validating Functions
-
-    function validateName(name){
-        let regex = /^[a-zA-ZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽ∂ð ,.'-]+$/u
-        return regex.test(name)
-    }
-
-    function validateEmail(email){
-        let regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
-
-        return regex.test(email)
-    }
-
-    function validatePhoneNumber(phoneNumber)   {
-        let regex = /^(?:\+\d{1,3}\s?)?(\d{9,10})$/
-        return regex.test(phoneNumber)
-    }
-
 })
