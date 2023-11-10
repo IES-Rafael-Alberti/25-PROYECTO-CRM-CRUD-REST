@@ -1,38 +1,42 @@
-import {activarSpinner, customerOBJ, displayAlert, validar} from "./funciones.js";
-import {form, inputName, inputBusiness, inputEmail, inputPhoneNumber, submitButton, spinner} from "./formHandler.js"
+import {activarSpinner, customerOBJ, displayAlert, validar} from "./utilityFiles/funciones.js";
+import {form, inputName, inputBusiness, inputEmail, inputPhoneNumber, submitButton, spinner} from "./utilityFiles/formHandler.js"
+import {createDatabase, getObjectStore} from "./utilityFiles/database.js";
+
 document.addEventListener("DOMContentLoaded", () => {
-
-    // Open or create a database named "MyDatabase" with version 3.
-    const openRequest = indexedDB.open("MyDatabase", 3);
-    //TODO Refactor the database code
-
-    // Retrieve the customer's email from local storage.
+    
     const customerEmailString = localStorage.getItem('customerEmail');
     const customerEmail = JSON.parse(customerEmailString);
     let database;
+    
+    document.addEventListener("DOMContentLoaded", () =>{
+        createDatabase()
+            .then(r => {
+                const store = getObjectStore()
+                getCustomerData(store)
+            })
+    })
 
+    function getInfoSuccess(event) {
+        const item = event.target.result;
+        if (item) {
+            console.log(item.email);
+        } else {
+            console.log("Item not found.");
+        }
+        setFormInfo(item)
+    }
 
-    openRequest.onsuccess = (event) => {
-        database = event.target.result;
-        const transaction = database.transaction("customers", "readwrite");
-        const objectStore = transaction.objectStore("customers");
-
-        // Get the customer data using the provided email.
+    function getCustomerData(objectStore) {
         const getInformationRequest = objectStore.get(customerEmail);
         getInformationRequest.onsuccess = (event) => {
-            const item = event.target.result;
-            if (item) {
-                console.log(item.email);
-            } else {
-                console.log("Item not found.");
-            }
-            setFormInfo(item)
+            getInfoSuccess(event);
         };
 
         getInformationRequest.onerror = (event) => {
             console.error("Error getting item:", event.target.error);
         };
     }
+
 
     // Define a function to set form information based on existing customer data.
     function setFormInfo(item) {
@@ -46,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
     inputName.addEventListener("blur", (event)=>{
         validar(event,submitButton)
     });
-    inputEmail.addEventListener("blur", (event)=>{
+    inputEmail.addEventListener("blur", (event)=>{G
         validar(event,submitButton)
     });
     inputPhoneNumber.addEventListener("blur", (event)=>{
@@ -100,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Function to save data to the database.
+    // Function to save data to the database.js.
     function saveToDatabase() {
         // Start a transaction for the "customers" object store.
         const transaction = database.transaction("customers", "readwrite");
@@ -108,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Check if the email has changed.
         if (customerOBJ.email !== inputEmail.value.trim()) {
-            // If the email has changed, check if it already exists in the database.
+            // If the email has changed, check if it already exists in the database.js.
             const request = objectStore.get(inputEmail.value.trim());
 
             request.onsuccess = (event) => {
