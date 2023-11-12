@@ -4,7 +4,7 @@ Is an embedded and asynchronous database that can be used with js, in order to c
 you have to create the database first, we can do so like this: 
 
 ```javascript
-    // The first value is the name of the database and the
+    // The first value is the name of the database.js and the
     // second is the version we want to use
     const openRequest = indexedDB.open("MyDatabase", 1);
 ```
@@ -36,7 +36,7 @@ add our new object with the information
         const store = transaction.objectStore('customers');
         const request = store.add(customerOBJ);
         
-        // this should add the information into the table but there are cases where an error occours due to the data not matching or existing already in the database, if we want to know where the data has been added we can 
+        // this should add the information into the table but there are cases where an error occours due to the data not matching or existing already in the database.js, if we want to know where the data has been added we can 
 ```
 
 Now to extract the information form the database we can use a cursor:
@@ -46,7 +46,7 @@ const cursorRequest = objectStore.openCursor();
 cursorRequest.onsuccess = (event) => {
     const cursor = event.target.result;
     if (cursor) {
-        // like this we can get all the info from the database 
+        // like this we can get all the info from the database.js 
         const obj = cursor.value;
         informationArray.push(obj);
         cursor.continue(); 

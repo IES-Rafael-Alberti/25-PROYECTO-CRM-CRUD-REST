@@ -1,124 +1,24 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const openRequest = indexedDB.open("MyDatabase", 3);
-    const tableBody = document.querySelector("#listado-clientes")
+import {createCursor, createDatabase, database, getObjectStore} from "./utilityFiles/database.js";
 
-    let database;
+document.addEventListener("DOMContentLoaded", async () => {
+    const tableBody = document.querySelector("#listado-clientes");
+    document.addEventListener("innerContentReady", async () => {
+        await getInfoInDB();
+    });
 
-    openRequest.onerror = (event) => {
-      console.error("Database error: " + event.target.errorCode);
-    };
+    document.dispatchEvent(new Event("innerContentReady"));
 
-    openRequest.onsuccess = (event) => {
-        database = event.target.result;
-        const transaction = database.transaction("customers", "readwrite");
-        const objectStore = transaction.objectStore("customers")
-        const informationArray = [];
-        getInfoInDB(objectStore, informationArray);
-    };
 
-    function getInfoInDB(objectStore, informationArray) {
-        const cursorRequest = objectStore.openCursor();
-        cursorRequest.onsuccess = (event) => {
-            const cursor = event.target.result;
-            if (cursor) {
-                const info = cursor.value;
-                informationArray.push(info);
-                cursor.continue(); 
-            } else {
-                createTable(informationArray)
-            }
-        };
-    }
-
-    function createTable(informationArray){
-        for (let i = 0; i < informationArray.length; i++){
-            let row = createRowForItem(informationArray[i],i)
-            tableBody.appendChild(row)
+    async function getInfoInDB() {
+        try {
+            const database = await createDatabase();
+            const objectStore = await getObjectStore(database);
+            const informationArray = [];
+            createCursor(objectStore, informationArray, tableBody);
+        } catch (error) {
+            console.error("Error in getInfoInDB:", error);
         }
     }
 
 
-    function createRowForItem(item,i) {
-        const row = document.createElement("tr");
-        row.appendChild(createTableCellWithText(item.nombre))
-        row.appendChild(createTableCellWithText(item.telefono))
-        row.appendChild(createTableCellWithText(item.empresa))
-        row.appendChild(createActionTab(item,i))
-        return row
-    }
-
-    function createTableCellWithText(text) {
-        const cell = document.createElement("td");
-        cell.classList.add("px-6", "py-3", "border-b", "border-gray-200", "text-left", "text-xs", "leading-4", "font-medium", "text-gray-600", "uppercase", "tracking-wider");
-        cell.textContent = text;
-        return cell;
-    }
-
-    function getById(id) {
-        return new Promise((resolve, reject) => {
-            const transaction = database.transaction("customers", "readwrite");
-            const objectStore = transaction.objectStore("customers");
-            const request = objectStore.get(id);
-
-            request.onsuccess = (event) => {
-                const email = event.target.result;
-                resolve(email);
-            };
-
-            request.onerror = (event) => {
-                reject(event.target.error);
-            };
-        });
-    }
-
-
-
-    function createActionTab(item,i){
-        let cell = document.createElement("td")
-        let removeButton = addRemoveButton(item,i)
-        let editButton = addEditButton(item)
-        cell.appendChild(removeButton)
-        cell.appendChild(editButton)
-        return cell
-    }
-
-
-    function addEditButton(item) {
-        const button = document.createElement("button");
-
-        button.classList.add("bg-teal-200", "px-6", "py-3", "border-b", "border-gray-200", "text-left", "text-xs", "leading-4", "font-medium", "text-gray-600", "uppercase", "tracking-wider");
-        button.textContent = "Editar";
-        button.addEventListener("click", () => {
-            console.log(item.email)
-            getById(item.email)
-                .then((email) => {
-                    const id = JSON.stringify(item.email)
-                    localStorage.setItem('customerEmail', id);
-                })
-                .catch((error) => {
-                    console.error("Error fetching email:", error);
-                });
-        });
-
-        button.onclick = function() {
-            window.location.href = 'editar-cliente.html';
-        };
-        return button;
-    }
-
-    function addRemoveButton(item,i) {
-        const button = document.createElement("button");
-        button.classList.add("bg-red-200", "px-6", "py-3", "border-b", "border-gray-200", "text-left", "text-xs", "leading-4", "font-medium", "text-gray-600", "uppercase","tracking-wider");
-        button.textContent = "Eliminar";
-        button.id = `remove-button${i}`
-        button.addEventListener("click", () =>{
-            let removeButton = document.querySelector(`#remove-button${i}`);
-            const transaction = database.transaction("customers", "readwrite");
-            const objectStore = transaction.objectStore("customers");
-            objectStore.delete(item.email).onsuccess = (event) => {
-                removeButton.parentElement.parentElement.remove(removeButton.parentElement);
-            };
-        })
-        return button;
-    }
-})
+});
